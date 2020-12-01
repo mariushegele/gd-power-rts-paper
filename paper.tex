@@ -1,0 +1,127 @@
+\documentclass[a4paper,ngerman]{atseminar}
+
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{algorithm2e}
+\usepackage[left]{lineno}
+\linenumbers
+
+%% Please do not include packages that change the layout/size of the
+%% of the document. They will be removed.
+
+\bibliographystyle{plain}%the recommended bibstyle
+
+% Preamble with header information 
+\subject{Ausarbeitungen für das Seminar}
+\title{Energieinformatik}
+\titlerunning{Seminar Energieinformatik}%optional
+
+
+
+
+
+%Organizer macros:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% do not use this field, but \summaryauthor
+\author{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%% begin of document %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\maketitle
+
+\GERMAN
+
+%%%%% YOUR REPORT BEGINS HERE
+\section{Geographically Distributed Real-Time Simulation of Power Grids}
+\summaryauthor[Marius Hegele]{Marius Hegele}
+
+\begin{abstract}
+Eine kurze Zusammenfassung der Ausarbeitung. 
+% motivation
+% research question
+% method
+% results
+\end{abstract}
+
+Hier steht der Inhalt der Ausarbeitung.
+
+\subsection{Introduction}
+
+Political goals such as the Paris agreement on Climate Change have been set to limit the amount of global temperature increase due anthropogenic greenhouse gas emissions. This has a large impact on the future production and distribution of electricity as one of the largest emitting factors. The energy transition revolves around the integration of distributed renewable energy resources to improve the sustainability of the electricty production. DERs might also decrease costs and increase
+reliability of supply for the owners of a distributed resource. 
+
+This trend disrupts the traditional design of power systems which used to be designed to transport energy in a unidirectional way from power provider to producer. It increases the complexity of the overall system, especially due to the uncertain nature of some renewable resources. Challenges for power systems including DERs are voltage and frequency control, (...). 
+
+Simulation techniques for power grids are becoming more important to analyze the impact of DER integration and new control designs by conducting experiments. There exists no single simulation tool which is optimized for qualitative simulation of power networks, DER models and control systems. Multiple tools can be combined in co-simulation to harness the specialized properties of each. Running co-simulations over large geographic distances enables collaboration among research
+institutions with confidential data or models and improves overall computational power. Running high-frequency simulations over distances requires high-latency communication links. 
+TODO real-time.
+
+The work in this paper presents the state of the art in geographically distributed real-time simulation of power systems. Selected implementations and experiments are categorized and compared. 
+
+% research question, goal
+% method
+% structure of paper
+
+\subsection{Related Work}
+
+
+
+
+\subsection{Method}
+% presentation, explanation
+% structure
+
+
+\subsection{Evaluation}
+
+% table
+% help to answer research question
+
+\begin{table}[h]
+\centering
+\caption{Tabellen haben Überschriften.}
+\begin{tabular}{l|ll}
+  \textbf{Zelle11} & \textbf{Zelle12} & \textbf{Zelle13} \\
+  \hline
+  \textbf{Zelle21} & Zelle22 & Zelle23 \\
+  \textbf{Zelle31} & Zelle32 & Zelle33 \\
+  
+\end{tabular}
+\label{XY:tab:interessant}
+% where X is the first letter of your first name and Y is the
+% first letter of your last name.
+\end{table}
+
+\subsection{Discussion}
+
+% itnerpretation
+% do the results address the RQ
+% does the method address the RQ
+% limitations of method / selected papers
+
+\subsection{Conclusion}
+
+% summary: motivation, problem, evaluation
+% outlook: future steps
+
+
+
+
+
+
+
+
+
+\bibliography{references}
+
+
+%%%%% YOUR REPORT ENDS HERE
+
+
+
+
+\end{document}
