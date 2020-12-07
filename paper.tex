@@ -47,8 +47,6 @@ Eine kurze Zusammenfassung der Ausarbeitung.
 % results
 \end{abstract}
 
-Hier steht der Inhalt der Ausarbeitung.
-
 \subsection{Introduction}
 
 Political goals such as the Paris agreement on Climate Change have been set to limit the amount of global temperature increase due anthropogenic greenhouse gas emissions. This has a large impact on the future production and distribution of electricity as one of the largest emitting factors. The energy transition revolves around the integration of distributed renewable energy resources to improve the sustainability of the electricty production. DERs might also decrease costs and increase
@@ -56,9 +54,11 @@ reliability of supply for the owners of a distributed resource.
 
 This trend disrupts the traditional design of power systems which used to be designed to transport energy in a unidirectional way from power provider to producer. It increases the complexity of the overall system, especially due to the uncertain nature of some renewable resources. Challenges for power systems including DERs are voltage and frequency control, (...). 
 
-Simulation techniques for power grids are becoming more important to analyze the impact of DER integration and new control designs by conducting experiments. There exists no single simulation tool which is optimized for qualitative simulation of power networks, DER models and control systems. Multiple tools can be combined in co-simulation to harness the specialized properties of each. Running co-simulations over large geographic distances enables collaboration among research
-institutions with confidential data or models and improves overall computational power. Running high-frequency simulations over distances requires high-latency communication links. 
-TODO real-time.
+Simulation techniques for power grids are becoming more important to analyze the impact of DER integration and new control designs by conducting experiments. There exists no single simulation tool which is optimized for qualitative simulation of power networks, DER models, control systems, energy markets and other relevant aspects. Accurate power system simulation can be achieved by combining multiple heterogeneous simulators which are specialized towards one aspect through
+coupled simulation (co-simulation).
+Separating simulators enables collaboration among research institutions across geographic boundaries reusing existing communication infrastructure to combine expensive specialized simulation hardware. It also resolves confidentiality issues in data or models and can address computational limitations through parallelization. Running high-frequency simulations over large geographic distances requires fast communication links. 
+
+Power systems have complex, dynamic and transient behavior. Its components and their connections need to be validated at real-time constraints and under different conditions. Hardware-in-the-loop (HIL) simulation adds plants or control units to the simulation as a Hardware under Test (HuT) with which Real-Time Simulators (RTS) can interface to produce interesting test criteria \cite{deJong2012}. 
 
 The work in this paper presents the state of the art in geographically distributed real-time simulation of power systems. Selected implementations and experiments are categorized and compared. 
 
@@ -68,7 +68,37 @@ The work in this paper presents the state of the art in geographically distribut
 
 \subsection{Related Work}
 
+\subsubsection{Co-simulation}
 
+Simulation relies on a model representing the system under test and a solver that controls the current time, calculates the model's current state and subscribes to events created by the model \cite{palensky2017}. The combination of a model and a solver is also called simulator. The Functional Mockup Interface (FMI) standardizes model properties in a formal structure to enable the exchange of models (and solvers) across simulation environments \cite{fmi}. This enables hybrid and coupled simulation.
+
+In general terms simulation strategies can be categorized as simple, hybrid, parallel or co-simulation \cite{palensky2017}. Hybrid simulation makes modeling easier by allowing the simulation of different model with the same solver. In such scenarios models can be defined in different ways or languages, but they need to expose a predefined interface to be usable by the single solver. 
+
+Co-simulation allows the combination of both multiple models as well as multiple solvers \cite{palensky2017}. Simulators of
+different aspects of the power system are fine-tuned to their applications. Where ICT communication networks are modeled as discrete event systems, power networks are usually modeled as continous-time functions. The inclusion of other simulators for aspects of the power system such as energy markets or DER might make the minutiae of each solver so hetergeneous as to prevent them from being merged into a single solver. More importantly, solvers as intellectual property are sometimes part of black
+box commercial products. This means that solvers need to be harmonized in a hierachical manner using a Master Algorithm that coordinates and synchronizes all solvers. The efficiency and stability of the overall co-simulation therefore greatly depends on efficient sychronization mechanisms as well as a low communication overhead.
+
+A synchronization scheme for co-simulation needs to support the combination of continuous-step, discrete-fixed-step, variable-time-step and event-driven simulators \cite{schloegl2015}. Continous simulators can be integrated with discrete simulators using a fixed discrete (small) sampling rate. The combined fixed-step simulators might have different step sizes. Variable time-step simulators can be regarded as an instance of event-driven simulators. 
+
+TODO figure, in-depth explanation:
+Combining event-driven simulators with fixed-step simulators or fixed-step simulators with different step sizes can be solved using a master algorithm to which all solvers communicate the next anticipated time step and potentially rolling back a solver to a preceding time step \cite{palensky2017}.
+
+\subsubsection{Real-time HIL simulation}
+
+Using HIL simulation requires real-time synchronization of simulators and hardware with a fixed-size time step. Simulators therefore need to operate at sufficient speed to calculate future state in time for the next step such as not to cause ``overruns'' \cite{belanger2010}. This characteristic is also described by ``online'' vs. ``offline'' simulation. Real-time simulators have been developed as high-performant systems using dedicated hardware and power interfaces to be used in HIL simulations \cite{rtds, opal-rt, vtb-rt}. In simulation setups where components are not geographically
+distributed the communication infrastructure as well as software running on them (e.g. switches, routers) might also be emulated or simulated, e.g. using \texttt{ns-2} \cite{epochs, geco}. In the case of geographically distributed RTS these are a required and crucial part of the setup that needs to exist in true form (hardware) to connect simulation nodes and to allow communication at a high bandwidth. Using HIL RTS can improve simulation accuracy, but suffers from a loss in efficiency because of the upper limit hardware
+clocks impose on the simulation step size \cite{schloegl2015}.
+
+% communcication
+
+\subsubsection{Geographically distributed RTS}
+
+% VILLAS, bompard, monti, vogel, stevic
+The VILLAS framework builds on UDP with a custom binary packet format to connect multiple RTS labs over significant geographic distances \cite{stevic2017, monti2018, vogel2019}. The custom format adds a timestamp and a sequence number in order to drop duplicated packets and reorder unordered packets similar to the TCP protocol. In contrast with TCP it omits the use of `ACK'nowledge message to check whether errors occurred during transmission and to resend packets if necessary. This lowers the
+communication overhead and increases communication latency, but lowers the reliability of transmission. Very small simulation time steps can mean that as soon as an error is detected (the timeout for the ACK has passed) resending a packet is already obsolete. The lab-to-lab UDP interface includes a receiving buffer to eliminate packet delay variation \cite{rfc3393} by temporarily storing and providing received packets at a constant rate. The interface is used to exchange 150 floating point
+values at a sending rate of 2000 packets per second. The protocol functions in a peer-to-peer fashion without a central scheduler. 
+All system clocks are synchronised using NTP with global time reference. Each node coordinates its execution independently based on the wall clock. Experiments have been conducted with eight geographically distributed RTS and 3 HIL systems \cite{monti2018}.
+% TODO vogel2019
 
 
 \subsection{Method}
@@ -83,17 +113,20 @@ The work in this paper presents the state of the art in geographically distribut
 
 \begin{table}[h]
 \centering
-\caption{Tabellen haben Überschriften.}
-\begin{tabular}{l|ll}
-  \textbf{Zelle11} & \textbf{Zelle12} & \textbf{Zelle13} \\
-  \hline
-  \textbf{Zelle21} & Zelle22 & Zelle23 \\
-  \textbf{Zelle31} & Zelle32 & Zelle33 \\
-  
+\caption{Comparison of solutions to GD-RTS of power systems}
+\resizebox{0.95\textwidth}{!}{
+\begin{tabular}{l|lllllll}
+
+\textbf{Solution} & \textbf{Protocol} & \textbf{Distribution} & \textbf{No. of Nodes} & \textbf{RTT (ms)} & \textbf{Max Distance (km)} & \textbf{Time step (µs)} & \textbf{No. of HIL sims}  \\
+\hline
+\textbf{VILLAS \cite{stevic2017, monti2018}}    & UDP   & P2P           & 8 & 31.76 & 8000  & 50        & 3 \\
+\textbf{\cite{lundstrom2017}}                   & HTTPS & Client-server & 2 & 198   & 13000 & $2*10^6$  & 2 \\
+\textbf{\cite{palmintier2015}}                  & UDP   & Client-server & 2 & 24    & 1600  & $1*10^6$  & 1 \\
+\textbf{\cite{montoya2018}}                     & TCP (OpSim) & Client-server & 2 & & 2800  & 200       & 0
+
 \end{tabular}
-\label{XY:tab:interessant}
-% where X is the first letter of your first name and Y is the
-% first letter of your last name.
+\label{MH:tab:comp}
+}%resizebox
 \end{table}
 
 \subsection{Discussion}
@@ -116,7 +149,7 @@ The work in this paper presents the state of the art in geographically distribut
 
 
 
-\bibliography{references}
+\bibliography{gd-rts}
 
 
 %%%%% YOUR REPORT ENDS HERE
