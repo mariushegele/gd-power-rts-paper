@@ -1,3 +1,4 @@
+
 \documentclass[a4paper]{atseminar}
 
 \usepackage{microtype}
@@ -43,100 +44,114 @@
 \summaryauthor[Marius Hegele]{Marius Hegele}
 
 \begin{abstract}
-Power grids are evolving rapidly, especially due to increasing demand in low-carbon electricity generation. New designs for transmission and distribution systems such as the adoption of a new wind park might affect the grid's frequency or power flow and should be validated by simulation. Performing simulations of large-scale power systems at real time is a computationally and financially expensive task. Combining the resources of multiple research institutions can alleviate this limitation. 
-These geographically distributed simulations need to find stable ways of dividing the simulated system into separately simulated parts and to establish interfaces to exchange information while dealing with large and varying delays in the internet communication channel. Several solutions and experiments are named, categorized and compared to demonstrate the current state of the art, its properties and potential research gaps.
-
+Power grids are evolving rapidly, especially due to increasing demand in low-carbon electricity generation. Changes to the structure of transmission and distribution systems such as the adoption of a new wind park might affect the grid's stability. Such changes need to be validated by simulation. Performing simulations of large-scale power systems at real-time is a computationally and financially expensive task. Combining the resources of multiple institutions can alleviate this limitation. 
+These geographically distributed simulations need to find stable and accurate methods for dividing the simulated system into separately simulated parts and to establish interfaces to exchange information while dealing with large and varying delays in the internet communication channel. Several solutions and experiments are named, categorized and compared to demonstrate the current state of the art, its properties and potential research gaps.
 \end{abstract}
 
 \subsection{Introduction}
 
-Political goals such as the Paris agreement on Climate Change have been set to limit the global temperature increase due to anthropogenic greenhouse gas emissions. This has a large impact on the future production and distribution of electricity as one of the largest emitting factors. The energy transition revolves around the integration of distributed renewable energy resources to improve the sustainability of the electricity production. Distributed energy resources might also decrease costs and increase reliability of supply for the owners of a distributed resource.
-This trend disrupts the traditional design of power systems which used to be designed to transport energy in a unidirectional way from power provider to consumer. It increases the complexity of the overall system, especially due to the uncertain nature of renewable resources such as sun and wind. Guaranteeing continuous supply, frequency stability and voltage stability for power systems that rely to a on distributed volatile renewable energy resources to a large degree is an acknowledged challenge.
+Political goals such as the Paris agreement on climate change have been set to limit the global temperature increase due to anthropogenic greenhouse gas emissions~\cite{paris-climate-agreement}. This has a large impact on the future production and distribution of electricity as one of the largest emitting factors. The energy transition revolves around the integration of renewable energy resources to improve the sustainability of the electricity production. A significant share of these comes in the form of distributed and volatile energy resources like rooftop solar.
+But this trend disrupts the traditional design of power systems which used to be designed to transport energy in a unidirectional way from the central power provider to the consumer and relied on dispatchable generation. Guaranteeing continuous supply, frequency stability and voltage stability for power systems that use a large share of distributed volatile renewable energy resources is an acknowledged challenge.
 
-To analyze the impact of integrating distributed renewable energy resources and new control designs by conducting experiments, simulation solutions for power grids are becoming more important. Simulating grids at large scale is often computationally and financially expensive and requires expertise as well as (potentially confidential) grid models.
+The impact of integrating distributed renewable energy resources and new control designs is analyzed through experiments using simulation. This means that simulation solutions for power grids are becoming more important. But simulating grids at large scale is often computationally and financially expensive. It also requires expertise and (potentially confidential) grid models. 
 
-Enabling collaboration among research institutions across geographic boundaries to combine expensive simulation hardware and confidential models could address these limiting factors. 
-But this depends on the ability to divide the power system simulation into separately simulated parts while guaranteeing simulation accuracy and stability even with unreliable and slow communication links. Because the properties of communication links (internet) are difficult or impossible to improve, communication delays multiple magnitudes higher than simulation time steps need to be addressed.
+Collaboration among institutions across geographic boundaries could address these limiting factors. 
+Separate institutions usually each have their own computational resources to conduct simulations. These can be combined to conduct simulations at a larger scale.
+Institutions might be unwilling to share information that is required to conduct simulation of a grid, but could be willing to provide a defined interface to a black-box model in order to participate in a coupled simulation (co-simulation), in which different sub-parts of the model are simulated in separate simulators.
 
-This seminar paper presents the state of the art in geographically distributed real-time simulation of power systems. Selected implementations and experiments are categorized and compared systematically to present an overview of the current state of the art. Section \ref{MH:sec:bg} establishes some necessary background information, before section \ref{MH:sec:art} demonstrates the current state of the art. In order to systematically evaluate past solutions to geographically distributed real-time simulation, section \ref{MH:sec:challenges} lists associated challenges and \ref{MH:sec:method} defines potential dimensions
-for categorizing how solutions address some of these challenges. Section \ref{MH:sec:results} demonstrates the results of applying these categorizations to found related work. Finally, section \ref{MH:sec:discuss} will briefly discuss the found results.
+But such co-simulations depend on the ability to divide the power system simulation into separately simulated parts while guaranteeing simulation accuracy and stability even with unreliable and slow communication links. The internet is usually the fastest available communication infrastructure between institutions. This means that communication delays are multiple magnitudes higher than simulation time steps.
+
+This seminar paper aims to present the state of the art in the solutions to these problems. Selected implementations and experiments are categorized and compared systematically to present an overview of the current state of the art. Section \ref{MH:sec:bg} establishes necessary background information, before Section \ref{MH:sec:art} demonstrates the current state of the art. In order to systematically evaluate past solutions to geographically distributed real-time simulation, Section \ref{MH:sec:challenges} lists associated challenges and \ref{MH:sec:method} defines potential criteria
+for categorizing how solutions address some of these challenges. Section \ref{MH:sec:results} demonstrates the results of applying these categorizations to found related work. Finally, Section \ref{MH:sec:discuss} briefly discusses the found results.
 
 
 \subsection{Background}
 \label{MH:sec:bg}
 
-The section will describe relevant fundamental information about co-simulation (section \ref{MH:sec:bg:cosim}, the simulation of power systems (section \ref{MH:sec:bg:power-sim}) and real-time simulation (section \ref{MH:sec:bg:real-time}).
+The section describes relevant fundamental information about co-simulation (Section \ref{MH:sec:bg:cosim}), the simulation of power systems (Section \ref{MH:sec:bg:power-sim}) and real-time simulation (Section \ref{MH:sec:bg:real-time}).
 
 \subsubsection{Co-simulation}
 \label{MH:sec:bg:cosim}
 
-A simulation consists of a model representing the system under test and a solver that controls the current time, calculates the model's current state and subscribes to events created by the model \cite{palensky2017}. The combination of a model and a solver is also called simulator.
+A simulation consists of a model representing the system under test and a solver that controls the simulation time, calculates the model's current state and subscribes to events created by the model~\cite{palensky2017}. 
 
-Models might be split into separately simulatable parts to decrease the time required to solve the model's differential equations by lowering their complexity. Using more than one simulator to simulate a coherent model is also called coupled simulation or co-simulation \cite{palensky2017}. There exist different types of simulators, but all of them have some way of determining at which time the solver calculates the current state of the model. It is done every so-called \textit{micro} time step. These can but do not have to occur at periodic intervals. In order to exchange current state the simulators synchronize every so-called \textit{macro} time step.
+Models might be split into separately simulatable parts to decrease the time required to solve the model's differential equations by lowering their complexity or to simulate different parts at different locations. The process of splitting a coherent model into multiple models that share interfaces and simulating them with separate solvers is also called coupled simulation or co-simulation~\cite{palensky2017}. Simulators can be coupled in a peer-to-peer or star topology. The central node in a star topology is called orchestrator~\cite{palensky2017}.
+
+The combination of a model and a solver is also called a simulator. 
+Solvers calculate the model's state every so-called \textit{micro} time step. These often happen in fixed periodic intervals. In order to exchange current state the simulators synchronize every so-called \textit{macro} time step over the interface.
+
 
 \subsubsection{Power system simulation}
 \label{MH:sec:bg:power-sim}
 
-Disturbances to the operation of a power system impacting its power quality range from natural phenomena like a tree falling on a power line to slight fluctuations in power demand. The power system is impacted and can be analyzed on different time scales. This dimension can be used to distinguish power system simulators, i.e. based on the size of their micro time steps.
+Disturbances to the operation of a power system range from natural phenomena like a tree falling on a power line to slight fluctuations in power demand. The power system is impacted and can be analyzed on different time scales. The time domain is one aspect by which to distinguish power system simulators, i.e. based on the size of the used micro time steps.
 
 % TODO: figure showing overlap of scales (Watson p.2?)
 \begin{figure}[h]
  \centering
   \includegraphics[scale = 0.2]{./img/dynamics.png}
-    \caption{Different levels of temporal resolution for simulations of power systems, from \cite{sauer1998}}
+    \caption{Different levels of temporal resolution for simulations of power systems~\cite{sauer1998}.}
  \label{MH:fig:dynamics}
 \end{figure}
 
-The x-axis of this diagram describes the size of the micro time step. The phenomena listed only appear in simulations of sufficient granularity. The smaller the simulator's micro time step, the higher the computational load. 
+The x-axis of Figure \ref{MH:fig:dynamics} describes the size of the micro time step. The listed phenomena only appear in simulations of sufficient granularity. The smaller the simulator's micro time step, the higher the computational load. Simulation methods are described here with decreasing granularity.
 
-Electromagnetic transients describe the interactions between magnetic fields of inductances and the electric fields of capacitances in the power system. These occur in a very small time scope of 1 to 50 µs. Electromechanical transients regard the larger-scale interactions between the kinetic (mechanical) energy stored in rotating machines (generators) and the electrical energy of the network \cite{watson2003}.
-Electromagnetic transient (EMT\footnote{potential confusion about the acronym EMT: it refers to electro-\textit{magnetic}, not mechanical transients}) simulations are used to test switching devices like voltage regulators (switching surges), insulation or subsynchronous resonance between the generator and the series capacitor (transmission line) \cite{sauer1998}.
+Electromagnetic transients describe the interactions between magnetic fields of inductances and the electric fields of capacitances in the power system. These occur in a very small time scope of 1 to 50 µs. 
+Electromagnetic transient (EMT) simulations are used to test switching devices like voltage regulators (switching surges), insulation or subsynchronous resonance between the generator and the series capacitor (transmission line)~\cite{sauer1998}.
+A power system can be modeled using a set of differential equations based on Kirchhoff's and Ohm's laws in the lumped-element model of electronic circuits~\cite{watson2003}.
+A common way of solving these models is the EMT program (EMTP)~\cite{dommel1964}. It is a solver that uses discrete micro time steps of fixed size in the microsecond range.
 
-A power system can be modeled using a set of (ordinary) differential equations based on Kirchhoff's and Ohm's laws in the lumped-element model of electronic circuits \cite{watson2003}.
-The industrial standard for solving these models is the EMT program (EMTP) \cite{dommel1964}. It is a solver that uses discrete micro time steps of fixed size. 
+All machines connected to an AC power system must remain in sync running with the same frequency. Active power produced must always roughly equal the power consumed combined with the losses of the network. This condition of synchronism is referred to as steady-state stability. 
+Frequency control mechanisms guarantee system stability. The rotation of large synchronous generators poses as a form of short-term kinetic energy storage (inertia) which can limit the magnitude of outages in the short-term. A system operator also might have to respond to outages with slower mechanisms such as automatic generation control shutting off or turning on additional dispatchable generators automatically (primary and secondary control). 
+These responses happen in the time range of seconds to minutes. They can be analyzed using simulators of larger time scale. 
 
-All machines connected to an AC power system must remain in sync running with the same frequency. Active power produced must always roughly equal the power consumed combined with the losses of the network. This condition of synchronism is referred to as steady-state stability. Steady-state stability simulations analyze the impact of small disturbances on the system like a gradual change of load whereas transient stability analyzes the impact of larger disturbances like the loss of a generator or very sudden changes in load \cite{sauer1998}.
-This includes frequency control mechanisms that guarantee system stability. The rotation of large synchronous generators poses as a form of short-term kinetic energy storage (inertia) which can limit the magnitude of outages in the short-term. A system operator also might have to respond to outages with slower mechanisms such as automatic generation control shutting off or turning on additional dispatchable generators automatically (primary and secondary control). These responses happen in the time range of seconds to minutes. They can be analyzed using (quasi-)steady-state simulators. 
-Whereas signals in EMT simulation are represented explicitly by electromagnetic waveforms in the time-domain, signals in steady-state simulations are represented by voltage and current \textit{phasors}.
+Transient stability simulations analyze the impact of larger disturbances like the loss of a generator~\cite{sauer1998}.
+These electromechanical transients regard the interactions between the kinetic (mechanical) energy stored in rotating machines (generators) and the electrical energy of the network~\cite{watson2003}.
+RMS simulators are used to analyse dynamics of this time scale~\cite{digsilent-rms}.
+Whereas signals in EMT simulation are represented explicitly by electromagnetic waveforms in the time-domain, signals in these simulations are represented by aggregated root-mean-square (RMS) values.
 
-Quasi-static power flow time-series simulation (QSTS) is one example of a steady-state simulation. It is applied to calculate economic value of distributed energy resources, to evaluate voltage fluctuations of variable power sources (e.g.~solar) \cite{ieee1547.7} or to simulate operation of voltage control devices, to determine steady-state voltage conditions and system protection coordination \cite{broderick2013}.
-It cannot simulate high-frequency phenomena on the EMT scale accurately (e.g.~fault ride-through) because it relies on models of much lower complexity. This also means it requires less computational resources and enables the simulation of larger models on larger time horizons than EMT simulation \cite{lundstrom2017}.
+Steady-state stability simulations analyze the impact of small disturbances on the system like a gradual change of load~\cite{sauer1998}. 
+They can be used to calculate optimal power flow of distributed energy resources, to evaluate voltage fluctuations of variable power sources (e.g.~solar)~\cite{ieee1547.7} or to simulate operation of voltage control devices, to determine steady-state voltage conditions and system protection coordination~\cite{broderick2013}.
+They cannot be used to simulate high-frequency phenomena on the EMT scale accurately (e.g.~fault ride-through) because they rely on models of much lower complexity. This also means they require less computational resources and enable the simulation of larger models on larger time horizons than EMT simulation~\cite{lundstrom2017}.
+
 
 \subsubsection{Real-time simulation}
 \label{MH:sec:bg:real-time}
 
-Real-time simulators calculate phenomena as fast as they would occur in reality. It therefore has the real-time requirement of calculating state in time for a defined point in time.
+Real-time simulators calculate phenomena as fast as they would occur in reality. It therefore has the real-time requirement of calculating state in time for a defined point in time~\cite{belanger2010}. This enables the integration of hardware into the simulation.
+Hardware-in-the-loop (HIL) simulation adds power hardware (PHIL) or control units (CHIL) to the simulation as a Hardware under Test with which Real-Time Simulators (RTS) can interface to produce interesting test criteria ~\cite{deJong2012}. 
 
-Hardware-in-the-loop (HIL) simulation adds power hardware (PHIL) or control units (CHIL) to the simulation as a Hardware under Test with which Real-Time Simulators (RTS) can interface to produce interesting test criteria or to exchange power through a power amplifier \cite{deJong2012}. Interesting levels of detail range from sub-second electromagnetic transient (EMT) studies to more long-term studies analyzing steady-state behavior like voltage control mechanisms.
-Using HIL simulation requires real-time synchronization of simulators and hardware with a fixed-size time step. Simulators therefore need to operate at sufficient speed to calculate future state in time for the next step, such as not to cause ``overruns'' \cite{belanger2010}. This characteristic is also described by ``online'' vs. ``offline'' simulation. 
+Modern real-time solvers like RTDS~\cite{rtds} or Opal-RT Hypersim~\cite{opal-rt} build on EMTP~\cite{dommel1964}, but calculate outputs fast enough to run continuously in conjunction with real power hardware. For EMT simulations occurring at high temporal resolution this requires significant computational resources. This is addressed by expensive and dedicated hardware of large scale motivating the desire to combine geographically distant research laboratories.
 
-Modern real-time solvers like RTDS \cite{rtds} or Opal-RT Hypersim \cite{opal-rt} build on EMTP \cite{dommel1964}, but calculate outputs fast enough to run continuously in conjunction with real power hardware. For EMT simulations occurring at high temporal resolution this requires significant computational resources. This is addressed by expensive and dedicated hardware of large scale motivating the desire to combine geographically distant research laboratories.
-
-Real-time simulation can be preferable on its own, simply for the sake of saving simulation time. Whether simulation nodes on either end of the distribution link in geographically distributed simulation use HIL simulation or not is irrelevant, so this paper will not go into the details on HIL simulation. But the potential to adopt HIL simulation in the future and to expand experiments to test more realistic behavior can further motivate the use of real-time simulation.
+Whether simulation nodes on either end of the communication link in geographically distributed simulation use HIL simulation or not is irrelevant for the coupling aspect of distributed simulators which is the focus of this seminar paper.
+Real-time simulation can be preferable by itself, simply for the sake of saving simulation time. 
+The potential to adopt HIL simulation in the future can further motivate its use.
 
 
 \subsection{State of the art}
 \label{MH:sec:art}
 
+This section shortly describes the history and current state of the art of relevant approaches for and experiments on geographically distributed real-time simulation. Some of the used solutions will be described in more detail in Section \ref{MH:sec:method}.
+
 % fuer jede loesung gleicher aufbau, nur anteasern
 
 % IEEE PES Task Force on Interfacing Techniques for Simulation Tools
 
-The first successful experiments on Internet-coupled simulation of power systems over geographic distances concentrated on co-simulation of thermo-electric ships \cite{faruque2009a, faruque2009b}. This study simulated the thermal system and the electric system separately. This makes it less interesting to the area of power system simulation, because only control signals from the thermal system were exchanged with the monolithic power system simulation and this setup therefore
-didn't have to face the challenge of separating the power system into separately simulated parts with appropriate interfaces.
+The first successful experiments on Internet-coupled simulation of power systems over geographic distances concentrated on co-simulation of thermo-electric ships~\cite{faruque2009a, faruque2009b}. This study simulated the thermal system and the electric system separately. This makes it less interesting to the area of power system simulation, because only control signals from the thermal system were exchanged with the monolithic power system simulation and this setup therefore
+doesn't have to face the challenge of separating the power system into separately simulated parts with appropriate interfaces.
 
-% Ravikumar et al. \cite{ravikumar2009} simulated a low-frequency AC power system over two racks in the same location, but used TCP to transmit voltage and current signals. They separated the system using voltage-current overlap decoupling (VCOD) (see section \ref{MH:sec:ia:vc-overlap}) \cite{wu2006}.
+% Ravikumar et al.~\cite{ravikumar2009} simulated a low-frequency AC power system over two racks in the same location, but used TCP to transmit voltage and current signals. They separated the system using voltage-current overlap decoupling (VCOD) (see Section \ref{MH:sec:ia:vc-overlap})~\cite{wu2006}.
 
-Palmintier et al. \cite{palmintier2015} coupled a distribution grid model containing two PV inverters with another lab running a PHIL simulation of these using two real-time-simulated PV panels connected to hardware inverters. The distribution model communicates voltage values to the inverters where current values are measured and fed back to the distribution model. This interface algorithm is called ideal transformer model (ITM, see section \ref{MH:sec:ia}).
-While the distribution model is simulated at a low-frequency sampling rate of 1 Hz performing QSTS simulation, the real-time simulators are sampling at a much higher frequency of 5 kHz, which means they are asynchronously coupled \cite{syed2020standard}. The low sampling rate (and therefore transmission rate) eliminates the need to deal with communication delays usually in the range of tens to hundreds of milliseconds.
-The approach was later applied to two labs situated at a much larger distance of around 13.750 km using PHIL simulation on both sides of the link (with a slower sampling rate of 0.5 Hz) \cite{lundstrom2017}.
+Palmintier et al.~\cite{palmintier2015} coupled a distribution grid model containing two photovoltaic (PV) inverters with another lab running a PHIL simulation of these using two real-time-simulated PV panels connected to hardware inverters. The distribution model communicates voltage values to the inverters where current values are measured and fed back to the distribution model. The used interface algorithm is called ideal transformer model (ITM, see Section \ref{MH:sec:ia}).
+While the distribution model is simulated at a low-frequency simulation frequency of 1 Hz performing steady-state simulation, the real-time simulators are sampling at a much higher frequency of 5 kHz, which means they are asynchronously coupled~\cite{syed2020standard}. The low simulation frequency (and therefore transmission rate) eliminates the need to deal with communication delays usually in the range of tens to hundreds of milliseconds.
+The approach was later applied to two labs situated at a much larger distance of around 13,750 km using PHIL simulation on both sides of the link with a slower simulation frequency of 0.5 Hz~\cite{lundstrom2017}.
 
-% Liu et al. \cite{liu2016} used linear prediction to compensate for time delays in the communication.
+% Liu et al.~\cite{liu2016} used linear prediction to compensate for time delays in the communication.
 
 % VILLAS, bompard, monti, vogel, stevic
-The \textit{VILLAS} framework is the result of years of research trying to combine the resources of multiple labs to conduct AC power system simulation at a high temporal resolution (EMT simulation) \cite{stevic2017europe, monti2018, vogel2019improve}. 
-The simulation is decoupled based on the ITM (see section \ref{MH:sec:ia}) and interface values are exchanged as dynamic phasors (see section \ref{MH:sec:delay}) over UDP and delays are compensated by phase shifting \cite{sansano2015harmonic} (see section \ref{MH:sec:delay}). The labs are connected in a peer-to-peer fashion and each node coordinates its execution independently based on a synchronized clock. Several experiments have been conducted using this solution with different numbers of research institutions at different distances using slight variations of this concept \cite{stevic2015feasibility, stevic2015sim, stevic2017europe, vogel2018distributed, monti2018, vogel2019improve}.
-It has been applied to DC simulation in \cite{stevic2018dc}. Adaptive transmission rates utilizing RTP were introduced by  \cite{vogel2019improve}.
+The \textit{VILLAS} framework is the result of years of research trying to combine the resources of multiple labs to conduct AC power system simulation at a high temporal resolution (EMT simulation)~\cite{stevic2017europe, monti2018, vogel2019improve}. 
+The simulation is decoupled based on the ITM and interface values are exchanged as dynamic phasors (see Section \ref{MH:sec:delay}) over UDP and delays are compensated by phase shifting~\cite{sansano2015harmonic} (see Section \ref{MH:sec:delay}). The labs are connected in a peer-to-peer fashion and each node coordinates its execution independently based on a synchronized clock. Several experiments have been conducted using this solution with different numbers of research institutions at different distances using slight variations of this concept~\cite{stevic2017europe, monti2018, vogel2019improve, stevic2015feasibility, stevic2015sim, vogel2018distributed}.
+It has been applied to DC simulation in~\cite{stevic2018dc}. Adaptive transmission rates utilizing RTP were introduced by~\cite{vogel2019improve}.
 % First: stevic2015sim [transatlantic].
 % Second: stevic2015feasibility RWTH-SINTEF (Norway)
 % Finally: Monti2018 with 8 RI.
@@ -144,28 +159,31 @@ It has been applied to DC simulation in \cite{stevic2018dc}. Adaptive transmissi
 % Vogel2018: GD-RTS. AsyncAC coupling.
 % Vogel2020: Async AC and estimation-based compensation.
 
-Pellegrino et al. \cite{strasser2019, pellegrino2020} demonstrate multiple coupling approaches, two of which are relevant here. One study coupled two laboratories over a shorter distance (21 km) using UDP, the ITM algorithm and dynamic-phasor-based delay compensation -- similar to the VILLAS framework -- to simulate frequency control mechanisms in a large transmission system in real time. Another study applied geographically distributed PHIL simulation at a low sampling rate of 0.2 Hz, also using the ITM algorithm -- similar to \cite{palmintier2015} -- to test a centralized voltage control algorithm. The low sampling and transmission rates again obsolete the need for delay compensations. Communication was implemented through a centralized Redis repository that is synchronized bidirectionally using UDP (called \textit{JaNDER}).
+Pellegrino et al. demonstrate multiple coupling approaches, two of which are relevant for the presented work~\cite{strasser2019, pellegrino2020}. One study coupled two laboratories over a shorter distance (21 km) using UDP, the ITM algorithm and dynamic-phasor-based delay compensation -- similar to the VILLAS framework -- to simulate frequency control mechanisms in a large transmission system in real time. Another study applied geographically distributed PHIL simulation at a low simulation frequency of 0.2 Hz, also using the ITM algorithm -- similar to~\cite{palmintier2015} -- to test a centralized voltage control algorithm. Communication was implemented through a centralized Redis\footnote{an in-memory data structure store} repository that is synchronized bidirectionally using UDP.
 
 \subsection{Challenges}
 \label{MH:sec:challenges}
 
-The main challenges in performing real-time coupled simulations of power systems over large geographic distances are related to the interface and the communication medium \cite{montoya2020}. In particular the major challenges are
+The main challenges in performing real-time coupled simulations of power systems over large geographic distances are related to the interface and the communication medium~\cite{montoya2020}. In particular the major challenges are
 
 \begin{itemize}
-    \item separating the simulation into separate components and building appropriate interfaces to communicate inter-dependent information (see section \ref{MH:sec:ia}), and
-    \item compensating the time delays in the communication link larger than a macro time step (see section \ref{MH:sec:delay}).
+    \item separating the simulation into separate components and building appropriate interfaces to communicate inter-dependent information (see Section \ref{MH:sec:ia}), and
+    \item compensating the time delays in the communication link larger than a macro time step (see Section \ref{MH:sec:delay}).
     %\item dealing with missing values due to the unreliability of the communication medium, and
     %\item standardizing interfaces to establish interoperability among research institutions.
 \end{itemize}
 
-Transmission delays are usually in the range of milliseconds, but simulation time steps in EMT simulation are in the range of microseconds. This difference needs to be compensated. Steady-state simulations do not face this challenge, because macro time steps are larger than the transmission delays. This makes such solutions and experiments \cite{palmintier2015, lundstrom2017, pellegrino2020} uninteresting besides their solutions to challenge number one.
+Transmission delays are usually in the range of milliseconds, but simulation time steps in EMT simulation are in the range of microseconds. This means that the model's state progresses with a significant number of micro time steps between each synchronization.
+Steady-state simulations do not face this challenge, because macro time steps are larger than the transmission delays. This means that certain solutions and experiments~\cite{palmintier2015, lundstrom2017, pellegrino2020} only need to address the first challenge.
 
-These challenges are not specific to geographically distributed simulation. PHIL simulation deals with some of the same problems due to the nature of power amplifiers. This is why solutions to decouple power systems (interface algorithms, section \ref{MH:sec:ia}) and solutions to deal with delays in power amplifiers (section \ref{MH:sec:delay}) are to some degree applicable to both incorporating hardware into the simulation as well as incorporating an additional research institution into the simulation.
+PHIL simulation deals with the same challenges. The coherent model needs to be split into a physical and a virtual part and the hardware interface imposes a delay.
+So solutions to these challenges can be applicable to both incorporating hardware into the simulation as well as incorporating an additional distant node into the simulation.
 
-\subsection{Method}
+\subsection{Analysis}
 \label{MH:sec:method}
 
-Different solutions address the defined challenges in different ways. In order to systematically compare approaches, dimensions for comparison need to be defined. Because some \textit{solutions} were validated in multiple \textit{experiments} with different setups, these are categorized (see tables \ref{MH:tb:sol} and \ref{MH:tb:exp}) separately. The dimensions for characterization yield criteria by which the relevant approaches can be filtered (see section \ref{MH:sec:selection}). Some of these dimensions have already been defined in \cite{syed2020standard}. Additional dimensions where chosen based on the analysis of related work.
+This section provides a framework for characterizing the current state of the art.
+Different solutions address the defined challenges in different ways. In order to systematically compare approaches, criteria for comparison need to be defined. Because some \textit{solutions} were validated in multiple \textit{experiments} with different setups, these are categorized separately. The categories yield criteria by which the relevant approaches can be filtered (see Section \ref{MH:sec:selection}). Some of these were defined in~\cite{syed2020standard}. Additional criteria are chosen based on the analysis of related work.
 
 \subsubsection{Categorization of solutions}
 \label{MH:sec:cat-sol}
@@ -175,12 +193,12 @@ Solutions for geographically distributed real-time simulation can be categorized
 \begin{itemize}
     
     \item the character of the exchanged signals (control signals vs.~electrical signals),
-    \item the representation of exchanged electrical signals (see section \ref{MH:sec:signal-repr}),
+    \item the representation of exchanged electrical signals (see Section \ref{MH:sec:signal-repr}),
     \item whether the simulators are synchronously coupled in their simulation steps,
-    \item the interface algorithm (see section \ref{MH:sec:ia}) used to partition the model,
-    \item whether and how communication delays are compensated (see section \ref{MH:sec:delay}), 
+    \item the interface algorithm (see Section \ref{MH:sec:ia}) used to combine partitioned models,
+    \item whether and how communication delays are compensated (see Section \ref{MH:sec:delay}), 
     \item the communication technology used (UDP vs. TCP), and % REST, IEC 61850, AMQP, MQTT, ...
-    \item the use of a central orchestrator\footnote{For protocol-agnosticism, synchronization, firewall-bypass or logging. Introduces delay in order of seconds. Only applicable to asynchronous AC, steady-state and slower dynamics studies \cite{syed2020standard}}.
+    \item the use of a central orchestrator\footnote{For protocol-agnosticism, synchronization, firewall-bypass or logging. Introduces delay in order of seconds. Only applicable to asynchronous AC, steady-state and slower dynamics studies~\cite{syed2020standard}}.
 
 \end{itemize}
 
@@ -191,22 +209,21 @@ Experiments that validate such solutions can be categorized based on
 
 \begin{itemize}
     \item the used solution,
-    \item the micro time step (sampling rate),
-    \item the macro time step (transmission rate), 
+    \item the micro time step (simulation frequency),
+    \item the macro time step (transmission frequency),
     \item the number of participating simulation nodes,
     \item the maximum distance between these nodes,
     \item the number of simulation nodes implementing HIL simulation, and
     \item the studied simulation scenario. It is characterized by
     \begin{itemize}
         \item AC vs.~DC power, and
-        \item the time range of studied phenomena (EMT vs. QSTS etc., see section \ref{MH:sec:bg:power-sim}).
+        \item the time range of studied phenomena (EMT vs. steady-state etc., see Section \ref{MH:sec:bg:power-sim}).
     \end{itemize}
 \end{itemize}
 
-The sampling rate can be synchronized or asynchronous. It ranges from 0.2 to 20000 Hz.
-The transmission rate must be lower than or equal to the sampling rate. It can be static or adaptive \cite{vogel2019improve}.
-
-A solution is usually regarded as accurate or stable if its simulated metrics correspond to the metrics of a purely monolithic, local and non-HIL simulation \cite{montoya2020}.
+The simulation time steps can be synchronized or asynchronous.
+The transmission frequency must be lower than or equal to the simulation frequency. It can be static or adaptive~\cite{vogel2019improve}.
+A solution is usually regarded as accurate or stable if its simulated metrics correspond to the metrics of a purely monolithic, local and non-HIL simulation~\cite{montoya2020}.
 
 \subsubsection{Selection criteria}
 \label{MH:sec:selection}
@@ -216,18 +233,18 @@ In order to be regarded as relevant to this topic a solution or experiment needs
 \begin{itemize}
 
 	\item use geographically distributed simulation nodes,
-    \item use real-time simulation (see section \ref{MH:sec:bg:real-time}), and
+    \item use real-time simulation (see Section \ref{MH:sec:bg:real-time}), and
 	\item exchange signals of electrical character instead of control signals.
 
 \end{itemize}
 
-This is why experiments that are only locally distributed \cite{yang2013, lin-yu2012, jiang2016, ravikumar2009} or only emulated to be at geographic distance \cite{li2017, liu2016} are disregarded, or only mentioned if they provide some otherwise interesting solution. Setups in which only a single node in the simulation runs a power system simulation and other node(s) act as controllers\footnote{can be in the form of hardware which is called CHIL \cite{syed2020standard}} \cite{wang2020, montoya2018, pau2018, barbierato2019} or simulate communication networks \cite{nguyen2020} or thermal systems \cite{faruque2009a, faruque2009b} or energy markets \cite{vogt2019} are also disregarded.
+This is why experiments that are only locally distributed~\cite{yang2013, lin-yu2012, jiang2016, ravikumar2009} or only emulated to be at geographic distance~\cite{li2017, liu2016} are disregarded, or only mentioned if they provide some otherwise interesting solution. Setups in which only a single node in the simulation runs a power system simulation and other node(s) act as controllers\footnote{can be in the form of hardware which is called CHIL~\cite{syed2020standard}}~\cite{wang2020, montoya2018, pau2018, barbierato2019} or simulate communication networks~\cite{nguyen2020} or thermal systems~\cite{faruque2009a, faruque2009b} or energy markets~\cite{vogt2019} are also disregarded.
 
 %Wang2020, Estebsari2016, (Pellegrino2020remotelab): GD-CHIL only, no GD-RTS.
 %OpSim: Toebermann2018, Montoya2018, Vogt2019 (only connected via low-rate "smart market" = controller / shared information base).
 
 %Nguyen2020: geographically distant, but separation into power sim. and controller/communication network sim => not more than one node simulating power system in RTS.
-% Pau et al. \cite{pau2018, barbierato2019}: Never used to simulate with > 1 real-time simulators!
+% Pau et al.~\cite{pau2018, barbierato2019}: Never used to simulate with > 1 real-time simulators!
 
 % Lin-Yu2012: monotlithic: distribution of power sim over two processors in OPAL-RT: 
 % CPU1 differential equations generators, excitation and governor systems; 
@@ -241,114 +258,110 @@ This is why experiments that are only locally distributed \cite{yang2013, lin-yu
 The internet is the fundamental communication medium used in experiments thus far. To date, there exists no setup using a dedicated communication medium over a large distance.
 
 Approaches can therefore only be distinguished based on whether they use the TCP or UDP protocol.
-In contrast with TCP, UDP omits the use of `ACK'nowledge message to check whether errors occurred during transmission and to resend packets if necessary. This lowers the communication overhead and increases communication latency but lowers the reliability of transmission. Very small simulation time steps can mean that as soon as an error is detected (the timeout for the ACK has passed) re-sending a packet is already obsolete. A large majority of approaches rely on UDP for these reasons.
+In contrast with TCP, UDP omits the use of acknowledge (ACK) messages to check whether errors occurred during transmission and to resend packets if necessary. This lowers the communication overhead and increases communication latency but lowers the reliability of transmission. Very small simulation time steps can mean that as soon as an error is detected (the timeout for the ACK has passed) the packet to be re-sent is already obsolete. A large majority of approaches do not use retransmissions and rely on UDP for these reasons.
 
-UDP interfaces might incorporate a receiving buffer to eliminate packet delay variation \cite{rfc3393} by temporarily storing and providing received packets at a constant rate or add a time stamp and sequence number to drop duplicated packets and reorder unordered packets similar to the TCP protocol \cite{stevic2017europe}. 
+UDP interfaces might incorporate a receiving buffer to eliminate packet delay variation~\cite{rfc3393} by temporarily storing and providing received packets at a constant rate or add a time stamp and sequence number to drop duplicated packets and reorder unordered packets similar to the TCP protocol~\cite{stevic2017europe}. 
 
 \subsubsection{Interface algorithms}
 \label{MH:sec:ia}
 
-Geographically distributed simulations and PHIL simulations have to deal with the common challenge of separating power system simulations while maintaining simulation stability and accuracy.
+Geographically distributed simulations have to deal with the challenge of separating power system simulations while maintaining simulation stability and accuracy.
 
-An interface algorithm (IA) defines the type of the signals that are transmitted (largely voltage or current) and the ways in which these signals are processed \cite{ren2008}. In PHIL simulations it is deployed between the real-time simulator and the power amplifier to ensure a stable and accurate range of operation \cite{montoya2020}. In this case voltage or current is passed from the virtual simulated system to the physical power system where in turn the dynamic response behavior is measured and passed back to the virtual simulated system.
-In geographically distributed simulation an interface algorithm is deployed on every interface between two distant research infrastructures in the topology. Interface algorithms are evaluated and compared in-depth in \cite{ren2008, brandl2017}.
+An interface algorithm (IA) defines the type of the signals that are transmitted (largely voltage or current) and the ways in which these signals are processed~\cite{ren2008}. 
+It is deployed on every interface between two distant research infrastructures in the topology. Interface algorithms are evaluated and compared in-depth in~\cite{ren2008, brandl2017}.
 
-There exist many interface algorithms, like the Transmission Line Model (TLM), Partial Circuit Duplication (PCD)\footnote{converges to a sufficiently accurate solution only after a sufficient number of iterations rendering it unsuitable to real-time simulation \cite{ren2008}}, the Damping Impedance Method\footnote{a combination of ITM and PCD} the Time-variant First-order Approximation (TFA) and more. These have been studied and applied at length as interfacing methods for PHIL setups,
-but have not been reported to have been applied to the separation of power systems for geographically distributed real-time simulation. This section only presents interface algorithms that have been used (repeatedly).
+There exist many interface algorithms, like the Transmission Line Model (TLM), Partial Circuit Duplication (PCD)\footnote{It converges to a sufficiently accurate solution only after a sufficient number of iterations rendering it unsuitable to real-time simulation~\cite{ren2008}.}, the Damping Impedance Method\footnote{A combination of ITM and PCD.}, the Time-variant First-order Approximation (TFA). These have been studied and applied at length as interfacing methods for PHIL setups,
+but have not been reported to have been applied to the coupling of power systems for geographically distributed real-time simulation. This section only presents interface algorithms that have been used.
 
-% There exist theoretical measure of an interface algorithm's performance based on the open-loop transfer function of a HIL system \cite{ren2008}. The simulation stability can be evaluated based on the small gain theorem and the accuracy based on the damping factor of the simulation error in the closed loop.
+% There exist theoretical measure of an interface algorithm's performance based on the open-loop transfer function of a HIL system~\cite{ren2008}. The simulation stability can be evaluated based on the small gain theorem and the accuracy based on the damping factor of the simulation error in the closed loop.
 
 \begin{figure}[h]
  \centering
  %\resizebox{0.95\textwidth}{!}{
     \includegraphics[scale = 0.2]{./img/itm.png}
  %}
- \caption{Ideal transformer model interface algorithm applied to a simulator-to-simulator interface from \cite{stevic2015sim}}
+ \caption{Ideal transformer model interface algorithm applied to a simulator-to-simulator interface from~\cite{stevic2015sim}}
  \label{MH:fig:itm}
 \end{figure}
 
 \label{MH:sec:itm}
-The Ideal Transformer Model (ITM) is the most commonly used interface algorithm in geographically distributed real-time simulation \cite{montoya2020, syed2020standard}. A power system is separated at an arbitrary point on a transmission line with few dynamics or at a transformer. Separating the model at transformer separates the model hierarchically based on voltage levels in analogy to the actual grid. Figure \ref{MH:fig:itm} demonstrates the ITM. One controlled current source on the left side injects current measurements of the right subsystem into the local subsystem. One controlled voltage source on the right side imposes inject voltage measurements of the left subsystem \cite{stevic2017europe}. The electrical signals transmitted over the communication medium can be represented in different ways (see section \ref{MH:sec:signal-repr}).
+The Ideal Transformer Model (ITM) is the most commonly used interface algorithm in geographically distributed real-time simulation~\cite{montoya2020, syed2020standard}. A power system is separated at an arbitrary point on a transmission line with few dynamics or at a transformer. Separating the model at transformer separates the model hierarchically based on voltage levels in analogy to the actual grid. Figure \ref{MH:fig:itm} demonstrates the ITM. The controlled current source on the left side injects current measurements of the right subsystem into the local subsystem. The controlled voltage source on the right side imposes voltage measurements of the left subsystem~\cite{stevic2017europe}.
 
-The ITM algorithm's physical validity is based on Norton and Thevenin equivalence of electrical circuits \cite{ren2008}. The ITM interface's simulation stability is sensitive to delays and time shifts between voltage and current (addressed by delay compensation mechanisms, see section \ref{MH:sec:delay}) \cite{stevic2015sim}. Its advantages are easy implementation and high accuracy \cite{brandl2017}.
+%The ITM algorithm's physical validity is based on Norton and Thevenin equivalence of electrical circuits~\cite{ren2008}.
+The ITM interface's simulation stability is sensitive to delays and time shifts between voltage and current. This needs to be addressed by delay compensation mechanisms~\cite{stevic2015sim}. But its advantages are a simple implementation and high accuracy~\cite{brandl2017}.
 
-An alternative interface algorithm is the voltage-current overlap decoupling pattern \cite{wu2006}. In contrast with the ITM interface, this interface uses current sources on both sides of the split point and exchanges both voltage and current signals in both directions. It uses a relaxation algorithm to approximate the neighboring system in each iteration. It therefore requires a more complex implementation and increases packet payload. It is also not applicable to tightly coupled sections of a power systems. 
+An alternative, but seldom used interface algorithm is the voltage-current overlap decoupling pattern~\cite{wu2006}. In contrast with the ITM interface, this interface uses current sources on both sides of the coupling point and exchanges both voltage and current signals in both directions. It uses a relaxation algorithm to approximate the neighboring system in each iteration. It therefore requires a more complex implementation and increases packet payload. It is also not applicable to tightly coupled sections of a power systems. 
 % TODO: applied in 
 % Q. Huang et al., “Distributed simulation applied to shipboard power systems,” in 2007 IEEE ESTS, May 2007, pp. 498–503.
 % J. Wu et al., “Distributed simulation for power system analysis including shipboard systems,” Electric Power Systems Research, vol. 77, no. 8, pp. 1124 – 1131, 2007.
-The generalized coupling scheme was proposed as an alternative solution that can be applied to tightly coupled systems \cite{bastos2007}. It uses a controlled current and a current voltage sources on both sides of the split. It added resistors to increase simulation stability.
+The generalized coupling scheme was proposed as an alternative solution that can be applied to tightly coupled systems~\cite{bastos2007}. It uses a controlled current and a current voltage sources on both sides of the split. It adds resistors to increase simulation stability.
 
 
 \subsubsection{Representation of exchanged signals and delay compensation}
 \label{MH:sec:signal-repr}
 \label{MH:sec:delay}
 
-% Delays non-determenistic in contrast to monolithic setups \cite{sansano2020delay}.
+% Delays non-determenistic in contrast to monolithic setups~\cite{sansano2020delay}.
 
-Geographically distributed simulations and PHIL simulations further have to deal with the common challenge of compensating the delays of the communication medium or the power amplifier \cite{sansano2015harmonic}, respectively.
+Geographically distributed simulations and PHIL simulations further have to deal with the common challenge of compensating the delays of the communication medium or the power amplifier~\cite{sansano2015harmonic}, respectively.
+In simulations with small simulation time steps, the communication delay is usually multiple times larger than a simulation time period.
 
-Regarding simulations with high sampling rates, where the communication delay is higher than a simulation time period, three-phase AC signals can only be exchanged directly at very low frequencies \cite{ravikumar2009, stevic2017europe}. For realistic frequencies (50-60 Hz) delays need to be compensated.
+% Three-phase AC signals can only be exchanged directly at very low frequencies~\cite{ravikumar2009, stevic2017europe}. For realistic frequencies (50-60 Hz) delays need to be compensated.
 
-
-The most straightforward solution to compensate transmission delays is transmission line modeling \cite{kuffel1995}. Given two labs that are connected in reality through a communication link that has a delay $\Delta t$. The two labs are furthermore connected virtually through an ITM interface in the grid model with a virtual distance $\Delta s$. The propagation of a signal on a transmission line is delayed naturally by the speed of light $c \approx 300$ km/ms. The idea behind transmission line modeling is to model the labs to be at a virtual distance that is sufficient to cover the physical delay, such that:
+The most straightforward solution to compensate transmission delays is transmission line modeling~\cite{kuffel1995}. Given two simulation nodes that are connected in reality through a communication link that has a delay $\Delta t$ given by the time difference between sending and receiving data. The models simulated by the two nodes are connected virtually through an ITM interface in the grid model with a virtual distance $\Delta s$. The propagation of a signal on a transmission line is restricted naturally by the speed of light $c \approx 300$ km/ms. The idea behind transmission line modeling is to model the interface between the models at a virtual distance that is sufficient to cover the physical delay, such that:
 \begin{equation}
     v = c = \frac{\Delta s}{\Delta t} \iff \Delta s = \Delta t \cdot c
 \end{equation}
-This means that for every millisecond of delay the labs need to be 300 km further apart in the model. This approach has limited scalability. While a common local delay of 50 µs implies a distance of 15 km, a transeuropean connection has delays in the order of 13 ms \cite{stevic2017europe} which would imply a distance of approximately 3900 km which is unrealistic for a transmission line. Geographically distributed simulation therefore requires alternative solutions to deal with time delays.
+
+This means that for every millisecond of delay the labs need to be 300 km further apart in the model. This approach has limited scalability. While a common local delay of 50 µs implies a distance of 15 km, e.g. a trans-european connection has delays in the order of 13 ms~\cite{stevic2017europe} which would imply a distance of approximately 3900 km which is unrealistic for a transmission line. Geographically distributed simulation therefore requires alternative solutions to deal with time delays.
 
 AC signals (current and voltage) are sinusoidal waveforms. They are defined by an amplitude $A$, a phase shift $\varphi$ and an angular frequency $\omega = 2\pi f$ where $f$ corresponds to the fundamental frequency (usually 50 or 60 Hz):
 \begin{equation}
-    y(t) = A \sin{\omega t + \varphi}
+    y(t) = A \sin{(\omega t + \varphi)}
 \end{equation}
 
+One way to represent sinusoidal waveform is by the complex plane. This representation is also called a phasor. The amplitude $A$ of the waveform is modeled as the real part and the phase shift $\varphi$ as the imaginary part. A phasor is defined for a fixed frequency $\omega$.
 
-
-Phasors represent a sinusoidal waveform of in the complex plane. The amplitude $A$ of the waveform is modeled as the real part and the phase shift $\varphi$ as the imaginary part. A phasor is defined for a fixed frequency $\omega$.
-Phasors enable the use of algebraic operations where otherwise solutions of differential equations would have been necessary.
-
-
-The harmonics of a sine use multiples $k\omega$ of the fundamental frequency. More complex oscillations can be decomposed into multiple sinusoidal waveforms of different harmonics and summed in a Fourier series. Limiting the Fourier series to a maximum harmonic $K$ then approximates the continuous oscillation in a discrete form. The coefficients of a Fourier series can be represented in the sine-cosine form with two real amplitudes, by a single sine with an amplitude and a phase offset or by complex phasors. This property is used by dynamic phasors \cite{stankovic2002, mirz2017phasor, stevic2017fidelity}. The complex coefficients $X_k(t)$ for each harmonic $k$ can be estimated by integrating/averaging the voltage or current waveform over moving windows of time. % 50 vs. 60 Hz => 20 / 16.66 ms
-Calculating and transmitting more harmonics improves simulation accuracy \cite{stevic2015sim, stevic2017europe}, but can become too computationally intensive to process in real time, which means there exists a trade-off in accuracy and stability.
+The harmonics of a sine use multiples $k\omega$ of the fundamental frequency. Complex oscillations can be decomposed into multiple sinusoidal waveforms of different harmonics and summed in a Fourier series. Limiting the Fourier series to a maximum harmonic $K$ then approximates the continuous oscillation in a discrete form. The coefficients of a Fourier series can be represented in the sine-cosine form with two real amplitudes, by a single sine with an amplitude and a phase offset or by complex phasors. This property is used by dynamic phasors~\cite{stankovic2002, mirz2017phasor, stevic2017fidelity}. The complex coefficients $X_k(t)$ for each harmonic $k$ can be estimated by integrating/averaging the voltage or current waveform over moving windows of time. % 50 vs. 60 Hz => 20 / 16.66 ms
+Calculating and transmitting more harmonics improves simulation accuracy~\cite{stevic2015sim, stevic2017europe}, but can become too computationally intensive to process in real time. This limits the number of usable harmonics.
 
 \begin{figure}[h]
  \centering
   \includegraphics[scale = 0.20]{./img/dp-itm.png}
-    \caption{Dynamic-phasor-based delay compensation alongside ITM (see section \ref{MH:sec:itm}) from \cite{stevic2017europe}. The timeline consists of micro time steps $Ts$ and macro time steps $h\cdot Ts$. }
+    \caption{Dynamic-phasor-based delay compensation alongside ITM (see Section \ref{MH:sec:itm}) from~\cite{stevic2017europe}. The timeline consists of micro time steps $Ts$ and macro time steps $h\cdot Ts$. }
  \label{MH:fig:dp}
 \end{figure}
 
-The application of dynamic phasors to geographically distributed simulation is depicted in figure \ref{MH:fig:dp}. 
-The time-domain (TD) voltage signal measured in the left subsystem of the ITM is approximated into a dynamic phasor consisting of a complex coefficient for each phase and for a fixed number of harmonics $K$.  This matrix is transmitted to the remote site.
-There the Fourier series is used to extrapolate the voltage value to the current (GPS-NTP-)synchronized time instant $t$ for each phase. Until newer dynamic phasors have been received subsystem 2 will approximate the current state of subsystem 1 based on previously received coefficients. This also addressed the problem of missing values in an unreliable transport protocol (UDP). The approximation of subsystem 1 of course deteriorates over time, so there is a limit to how long previously received coefficients can still be regarded as accurate enough.
-\cite{stevic2017fidelity}
+The application of dynamic phasors to geographically distributed simulation is depicted in Figure \ref{MH:fig:dp}. 
+The time-domain (TD) voltage signal measured in the upper subsystem of the ITM is approximated into a dynamic phasor consisting of a complex coefficient for each phase and for a fixed number of harmonics $K$.  This matrix is transmitted to the remote site.
+There the Fourier series is used to extrapolate the voltage value to the current synchronized time instant $t$ for each phase. Until subsystem 2 receives newer dynamic phasors it approximates the current state of subsystem 1 based on previously received coefficients. This also addresses the problem of packet loss in an unreliable transport protocol (UDP). The accuracy of previously received coefficients and therefore of the approximation of subsystem 1 deteriorates with advancing simulation time~\cite{stevic2017fidelity}. This motivates minimizing communication delays to increase the frequency of transmission and means that the simulation accuracy while suffer significantly in case of connection loss.
+
+Electrical signals can also be exchanged as a tuple of Root Means Square (RMS) voltage (or current)\footnote{measured at fundamental frequency}, frequency and phase angle  $\theta$~\cite{stevic2017fidelity}. On the other side, the waveform at (synchronized) time-instant $t$ can be reconstructed by adding the phase angle of $t$ in relation to frequency $f$ to the original transmitted phase angle $\theta$. This compensates for the phase shift occurring due to delays in transmission. 
 
 
-Electrical signals can also be exchanged as a tuple of Root Means Square (RMS) voltage (or current)\footnote{measured at fundamental frequency}, frequency and phase angle  $\theta$ \cite{stevic2017fidelity}. On the other side, the waveform at (synchronized) time-instant $t$ can be reconstructed by adding the phase angle of $t$ in relation to frequency $f$ to the original transmitted phase angle $\theta$. This compensates for the phase shift occurring due to delays in transmission. 
+Both RMS, frequency and phase angle as well as dynamic phasor representation struggle to accurately represent certain transients when compensating for large delays~\cite{stevic2017fidelity}.
 
+% TODO Synchronous reference frame~\cite{syed2020sync}. Only for balanced operating conditions, potentially single phase synchronous reference frame~\cite{syed2020standard}.
 
-Both RMS, frequency and phase angle as well as dynamic phasor representation struggle to accurately represent certain transients when compensating for large delays \cite{stevic2017fidelity}.
+Delays can also be compensated by using linear predictions based on previously received values~\cite{liu2016}. This improves simulation accuracy in an experiment with a fixed simulated delay of 15 ms.
 
-% TODO Synchronous reference frame \cite{syed2020sync}. Only for balanced operating conditions, potentially single phase synchronous reference frame \cite{syed2020standard}.
+A hard constraint for all transformations or predictions is that the time needed to compute the prediction does not exceed the time left until the next micro time step.
 
-Delays have also been compensated by using linear predictions using linear curve fitting based on previously received values \cite{liu2016}. This was shown to improve simulation accuracy in an experiment with a fixed simulated delay of 15 ms.
+%Lead filter~\cite{ren2011interfacing}.
 
-A hard constraint for all transformations or predictions is that the time needed to compute the prediction does not exceed the time left until the next macro time step.
-
-%Lead filter \cite{ren2011interfacing}.
-
-% TODO Estimator-based \cite{vogel2020grid-forming}.
+% TODO Estimator-based~\cite{vogel2020grid-forming}.
 % TODO Active and reactive power measurements for async AC signals. Reduced number of interface signals, conservation of energy.
 
 \subsection{Results}
 \label{MH:sec:results}
 
-Having listed categories and described common solutions it is possible to differentiate the current state of the art systematically. The analysis separately addresses solutions and experiments. Some solutions have been tested in multiple experiments. The table \ref{MH:tb:sol} classifies solutions and the table \ref{MH:tb:exp} classifies experiments from the relevant part of the literature (see section \ref{MH:sec:selection}) based on the previously defined categories. 
+The categories and described common solutions listed above enable a systematic analysis the current state of the art. The analysis separately addresses solutions and experiments. Some solutions have been tested in multiple experiments. Table \ref{MH:tb:sol} classifies solutions and Table \ref{MH:tb:exp} classifies experiments from the relevant part of the literature based on the previously defined categories. 
 
 \newcommand{\citevillas}{stevic2017europe, monti2018}
 
 \begin{table}[h]
 \centering
-    \caption{Comparison of solutions for geographically distributed RTS of power systems, classification based on \ref{MH:sec:cat-sol} and in part based on \cite{syed2020standard}}
+    \caption{Comparison of solutions for geographically distributed RTS of power systems, classification based on Section \ref{MH:sec:cat-sol} and in part based on~\cite{syed2020standard}.}
 \resizebox{0.95\textwidth}{!}{
 \begin{tabular}{l|llllll}
 
@@ -367,7 +380,7 @@ Having listed categories and described common solutions it is possible to differ
     \textbf{\cite{palmintier2015, lundstrom2017}}          
         & Async & ITM  & Mixed phasor \& RMS, phase, freq. & None               & UDP   & Yes \\
 
-    \textbf{VILLAS \cite{\citevillas}}      
+    \textbf{VILLAS~\cite{\citevillas}}      
         & Sync  & ITM  & Dynamic phasors                   & Phase shift        & UDP   & No  \\
 
     \textbf{\cite{pellegrino2020}-A}
@@ -377,26 +390,27 @@ Having listed categories and described common solutions it is possible to differ
 
     % \textbf{\cite{liu2016}}
     %    & Sync  & ITM  & RMS, phase, freq.                 & Linear prediction & UDP   & Yes  \\
-    % \cite{vogel2020grid-forming} % estimation-based comp.
+    %~\cite{vogel2020grid-forming} % estimation-based comp.
 
 \end{tabular}
 \label{MH:tb:sol}
 }%resizebox
 \end{table}
 
-As can be seen in table \ref{MH:tb:sol}, the presented solutions all rely on the ITM interface algorithm as well as the UDP protocol for transmission. Central orchestrators have only been used in slow-scale steady-state studies.
+As can be seen in Table \ref{MH:tb:sol}, the presented solutions all rely on the ITM interface algorithm as well as the UDP protocol for transmission. A central orchestrator has only been used in slow-scale steady-state studies.
 
 
 \begin{table}[h]
 \centering
-    \caption{Comparison of experiments on geographically distributed RTS of power systems, classification based on \ref{MH:sec:cat-exp} and in part based on \cite{syed2020standard}}
+    \caption{Comparison of experiments on geographically distributed RTS of power systems, classification based on Section \ref{MH:sec:cat-exp} and in part based on~\cite{syed2020standard}.}
 \resizebox{0.95\textwidth}{!}{
-\begin{tabular}{ll|lllllll}
+\begin{tabular}{ll|llllllll}
 
     \textbf{Experiment} & 
     \textbf{Solution} & 
-    \textbf{Sampling rate [Hz]} & 
-    \textbf{Transmission rate [Hz]} & 
+    \textbf{Simulation freq. [Hz]} & 
+    \textbf{Transmission freq. [Hz]} & 
+    \textbf{RTT\footnote{Round-trip-time: Time required to send a packet and receive the according acknowledgement.}[ms]} & 
     \textbf{Nodes}  & 
     \textbf{max. Distance [km]} & 
     \textbf{HIL}  &
@@ -405,36 +419,36 @@ As can be seen in table \ref{MH:tb:sol}, the presented solutions all rely on the
 
 \hline
 
-%       & Sampl.r.  & Trans.r.  & Nodes & dist. & HIL   & AC/DC & Simtype
+%       & Sampl.r.  & Trans.r.  & Delay & Nodes & dist. & HIL   & AC/DC & Simtype
 
-    \cite{palmintier2015}   & \cite{palmintier2015, lundstrom2017}
-        & 1 \& 5000 & 1         & 2     & 1600  & 1     & AC    & Steady-state  \\
-    \cite{lundstrom2017}    & \cite{palmintier2015, lundstrom2017}             
-        &           & 0.5       & 2     & 13000 & 2     & AC    & Steady-state  \\
+\cite{palmintier2015}   &~\cite{palmintier2015, lundstrom2017}
+       & 1 \& 5000  & 1         & 24    & 2     & 1600  & 1     & AC    & Steady-state  \\
+\cite{lundstrom2017}    &~\cite{palmintier2015, lundstrom2017}             
+       &            & 0.5       & 198   & 2     & 13000 & 2     & AC    & Steady-state  \\
 
-    \cite{stevic2017europe} & VILLAS        
-        & 20000     & 2000     & 2     & 650   & 2     & AC    & EMT   \\
-    \cite{monti2018}        & VILLAS        
-        & 20000     & 2000     & 8     & 8000  & 3     & Mix   & EMT   \\
-    \cite{stevic2018dc} & VILLAS        
-        & 20000     & 2000     & 2     & emu.  & 2     & DC    & EMT   \\
-    \cite{vogel2019improve} & VILLAS        
-        & 20000     & adaptive  & 2     & emu.  & 2     & AC    & EMT   \\
+\cite{stevic2017europe} & VILLAS        
+       & 20000      & 2000      & 31.76 & 2     & 650   & 2     & AC    & EMT   \\
+\cite{monti2018}        & VILLAS        
+       & 20000      & 2000      &       & 8     & 8000  & 3     & Mix   & EMT   \\
+\cite{stevic2018dc} & VILLAS        
+       & 20000      & 2000      & 30    & 2     & emu.  & 2     & DC    & EMT   \\
+\cite{vogel2019improve} & VILLAS        
+       & 20000      & adaptive  & 13    & 2     & 180   & 2     & AC    & EMT   \\
 
 
-    \cite{pellegrino2020}-A & \cite{pellegrino2020}-A
-        &           &           & 2     & 21    & 0     & AC    & EMT   \\
-    \cite{pellegrino2020}-B & \cite{pellegrino2020}-B
-        &           & 0.2       & 2     &       & 1     & AC    & Steady-state \\
+\cite{pellegrino2020}-A &~\cite{pellegrino2020}-A
+       &            &           &       & 2     & 21    & 0     & AC    & EMT   \\
+\cite{pellegrino2020}-B &~\cite{pellegrino2020}-B
+        &           & 0.2       &       & 2     &       & 1     & AC    & Steady-state \\
 
-% \cite{liu2016}  & \cite{liu2016}
+%~\cite{liu2016}  &~\cite{liu2016}
 %    &           &           & 2     & emu.  & 0     & AC    & Steady-state \\
 
-%GD-CHIL \cite{montoya2018}      & OpSim         & 2 & 2800  & 408   & 298   & TODO  & 200           & 1 \\ % EMT sim.
-%GD-CHIL \cite{vogt2019}         & OpSim + REST  & 2 & 1856  &       & 128   &       & $0.5*10^6$    & 1 \\
-%GD-CHIL \cite{wang2020}         &               &   & 11000 &       & 100   & 20000 & 50            & 1 \\
-%RTS < 2 \cite{pau2018}          & Flexmeter     & 0 &       & 1300  & 280   & 500       & $60*10^6$     & 0 \\ 
-%RTS < 2 \cite{barbierato2019}   & Flexmeter     & 1 & 1200  & 150   & 140   &           &               & 0
+%GD-CHIL~\cite{montoya2018}      & OpSim         & 2 & 2800  & 408   & 298   & TODO  & 200           & 1 \\ % EMT sim.
+%GD-CHIL~\cite{vogt2019}         & OpSim + REST  & 2 & 1856  &       & 128   &       & $0.5*10^6$    & 1 \\
+%GD-CHIL~\cite{wang2020}         &               &   & 11000 &       & 100   & 20000 & 50            & 1 \\
+%RTS < 2~\cite{pau2018}          & Flexmeter     & 0 &       & 1300  & 280   & 500       & $60*10^6$     & 0 \\ 
+%RTS < 2~\cite{barbierato2019}   & Flexmeter     & 1 & 1200  & 150   & 140   &           &               & 0
 
 % pau2018: no RTS nodes, 4 Matlab simulations
 % barbierato2019: non-RTS nodes: 10k (simpler household models)
@@ -447,7 +461,7 @@ As can be seen in table \ref{MH:tb:sol}, the presented solutions all rely on the
 }%resizebox
 \end{table}
 
-Tables \ref{MH:tb:sol} and \ref{MH:tb:exp} demonstrate that simulations running with a low transmission rate do not require delay compensation \cite{palmintier2015, lundstrom2017} \cite{pellegrino2020}-B. While subsystems might be running real-time simulations with large sampling rates, the overall coupled model can only simulate steady-state phenomena in such cases \cite{palmintier2015}. The VILLAS framework has been tested multiple times with different configurations and extensions.
+Tables \ref{MH:tb:sol} and \ref{MH:tb:exp} demonstrate that simulations running with a low transmission rate do not require delay compensation~\cite{palmintier2015, lundstrom2017}~\cite{pellegrino2020}-B. While subsystems might be running real-time simulations with large simulation frequencies, the overall coupled model can only simulate steady-state phenomena in such cases~\cite{palmintier2015}. The VILLAS framework has been tested in multiple experiments with different configurations and extensions.
 
 
 \subsection{Discussion}
@@ -459,12 +473,12 @@ Tables \ref{MH:tb:sol} and \ref{MH:tb:exp} demonstrate that simulations running 
 % limitations of method / selected papers
 
 The presented solutions and experiments indicate an active research endeavor. The presented set of solutions and experiments is therefore likely not exhaustive.
+The choice between monolithic versus distributed simulation can be summarized in the trade-off of accuracy versus scalability.
+Geographically distributed simulation creates new challenges which do not occur in monolithic simulations and which impact the simulation's accuracy. But combining the resources of multiple simulation nodes can increase scalability, especially due to the organizational factors of confidential information and financial expense.
 
-Regarding the selected papers it can be said that geographically distributed simulation creates new problems which we don't face in monolithic simulations, but that it has been demonstrated to work at significant scale at high levels of detail with stability and accuracy \cite{monti2018}. The solutions are fairly homogeneous in the ways in which they address the major challenges of model partitioning and communication delay.
+Geographically distributed simulation has been demonstrated to work at significant scale at high levels of detail with stability and accuracy~\cite{monti2018}. The solutions are fairly homogeneous in the ways in which they address the major challenges of model partitioning and communication delay.
 
-The approaches are very closely related to the solutions of hardware-in-the-loop simulations, because both goals pose similar challenges, and the ideas of some solutions -- especially interface algorithms and delay compensation -- have been transferred more or less directly to geographically distributed real-time simulation.
-
-Geographically distributed simulation can make sense if the simulation scenario is limited by computational resources or power infrastructure for HIL simulation, or if it is lacking confidential power system models.
+The approaches are very closely related to the solutions of hardware-in-the-loop simulations, because both setups pose similar challenges, and the ideas of some solutions -- especially interface algorithms and delay compensation -- can be transferred more or less directly to geographically distributed real-time simulation.
 
 Still, a truly realistic field test using real grid models, e.g.~among cooperating transmission or distribution system operators, was thus far not publicized or not discovered here.
 
@@ -474,10 +488,12 @@ Still, a truly realistic field test using real grid models, e.g.~among cooperati
 % summary: motivation, problem, evaluation
 % outlook: future steps
 
-This seminar paper listed, categorized and compared solutions to geographically distributed real-time simulation of power systems to demonstrate the current state of the art. The state of the art is predominated by two challenges and one according solution for each: the ideal transformer model (ITM) addresses the problem of model partitioning and the dynamic phasors address delays in the communication link. One of the presented experiments has validated these solutions successfully at large scale and high temporal detail. This establishes confidence in the developed and applied approaches (ITM, dynamic phasors) as well as the feasibility of the overall idea.
+This seminar paper lists, categorizes and compares solutions to geographically distributed real-time simulation of power systems to demonstrate the current state of the art. 
+The state of the art is predominated by two challenges and one according solution for each: the ideal transformer model (ITM) addresses the challenge of coupling partitioned models and the usage of dynamic phasors address delays in the communication link. One of the presented experiments has validated these solutions successfully at large scale and high temporal detail \cite{monti2018}. This establishes confidence in the developed and applied approaches as well as the feasibility of the overall idea.
 
-Potential future research endeavors could include the use of dedicated bandwidth instead of public internet or try to establish an optimal approach to system partitioning \cite{montoya2020}. Furthermore, past studies have largely dealt with only homogeneous simulators. Realistic future studies of complex smart grids might require the ability to include and coordinate systems with different platforms, models and solvers \cite{syed2020standard, palensky2017}. Interfaces for distributed simulation
-require standardization. Standards for offline non-real-time simulation exist \cite{dcp}, but still need to be developed or applied to geographically distributed real-time simulation \cite{syed2020standard}.
+Potential future research endeavors could include the use of dedicated bandwidth instead of public internet or try to establish an optimal approach to system partitioning~\cite{montoya2020}. Furthermore, past studies have largely dealt with only homogeneous simulators. Realistic future studies of complex smart grids might require the ability to include and coordinate systems with different platforms, models and solvers~\cite{syed2020standard, palensky2017}.
+
+%Interfaces for distributed simulation require standardization. Standards for offline non-real-time simulation exist~\cite{dcp}, but still need to be developed or applied to geographically distributed real-time simulation~\cite{syed2020standard}.
 
 
 %\bibliography{gd-rts}
